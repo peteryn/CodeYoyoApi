@@ -91,7 +91,7 @@ app.MapPost("/signin", async (HttpContext context) =>
     }
 });
 
-app.MapGet("/secure", () => new { message = "Hi, this a secret message" }).RequireAuthorization();
+app.MapGet("/secure", () => new { message = "Message From Server" }).RequireAuthorization();
 
 app.MapGet("/easy", () => new { message = "cool" });
 
