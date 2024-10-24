@@ -22,15 +22,15 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddAuthorization();
 
-var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+const string corsPolicy = "_myAllowSpecificOrigins";
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowSpecificOrigin",
+    options.AddPolicy(name: corsPolicy,
         builder =>
         {
             builder
-                .WithOrigins("http://localhost:3000") // Replace with your actual client port
+                .WithOrigins("http://localhost:3000")
                 .AllowCredentials()
                 .AllowAnyHeader()
                 .AllowAnyMethod();
@@ -52,18 +52,13 @@ if (app.Environment.IsDevelopment())
 }
 
 //app.UseHttpsRedirection();
-
 // put routes here
 app.UseRouting();
-//app.UseCors(MyAllowSpecificOrigins);
-
 
 app.MapPost("/signin", async (HttpContext context) =>
 {
-    Console.WriteLine("IN singing");
     string authHeader = context.Request.Headers.Authorization.ToString();
-    // Or specifically for Bearer token:
-    string jwt = context.Request.Headers.Authorization.ToString().Replace("Bearer ", "");
+    string jwt = authHeader.ToString().Replace("Bearer ", "");
     try
     {
         var payload = await GoogleJsonWebSignature.ValidateAsync(jwt, new GoogleJsonWebSignature.ValidationSettings());
@@ -88,40 +83,19 @@ app.MapPost("/signin", async (HttpContext context) =>
             new ClaimsPrincipal(claimsIdentity),
             authProperties);
 
-        Console.WriteLine("Success");
         return Results.Ok();
     }
     catch (InvalidJwtException)
     {
-        Console.WriteLine("unauthorized");
         return Results.Unauthorized();
     }
 });
 
-app.MapGet("/secure", () =>
-{
-    return new { message = "Hi, this a secret message" };
-}).RequireAuthorization();
+app.MapGet("/secure", () => new { message = "Hi, this a secret message" }).RequireAuthorization();
 
-app.MapGet("/easy", () =>
-{
-    return new { message = "cool" };
-});
+app.MapGet("/easy", () => new { message = "cool" });
 
-app.MapGet("cookie", (HttpResponse response) =>
-{
-    Console.WriteLine("In cookie");
-    var options = new CookieOptions
-    {
-        HttpOnly = false,
-        Secure = false,
-        SameSite = SameSiteMode.Lax
-    };
-    response.Cookies.Append("test", "test", options);
-    return Results.Ok();
-});
-
-app.UseCors("AllowSpecificOrigin");
+app.UseCors(corsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 
